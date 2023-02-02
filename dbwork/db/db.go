@@ -6,6 +6,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"log"
     "strconv"
+    "strings"
 )
 
 var db *sql.DB
@@ -34,7 +35,39 @@ func SetDB() {
     fmt.Println("Connected!")
 }
 
-func Query(sql string) string{
+
+func Query(sql string) map[string]map[string]string{
+    log.Println(sql)
+	rows, err := db.Query(sql)
+	if err != nil {
+        log.Fatal(err)
+    }
+    defer rows.Close()
+
+    cols, _ := rows.Columns()
+    pointers := make([]interface{}, len(cols))
+    container := make([]string, len(cols))
+    result := make(map[string]map[string]string)
+    for i, _ := range pointers {
+        pointers[i] = &container[i]
+    }
+
+    for rows.Next() {
+        if err := rows.Scan(pointers...); err != nil {
+            fmt.Errorf("err : %v",  err)
+        }
+        item := make(map[string]string)
+        for i, v := range cols {
+            item[v] = container[i]
+        }
+        result[container[0]] = item
+    }
+    return result
+
+}
+
+
+func JsonQuery(sql string) string{
     log.Println(sql)
 	rows, err := db.Query(sql)
 	if err != nil {
@@ -57,7 +90,7 @@ func Query(sql string) string{
         }
         result = result+"{"
         for inx, val := range container{
-            result = result+"\""+cols[inx]+"\":\""+val+"\","
+            result = result+"\""+cols[inx]+"\":\""+strings.Replace(val, "\"", "\\\"",-1)+"\","
         }
         result = result[:len(result)-1]
         result = result+"},"

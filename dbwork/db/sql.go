@@ -29,5 +29,15 @@ func SelectBase(param map[string]string) string{
 		from base
 		where description like "%재료%" and description  like "%[%"
 	`
+	return JsonQuery(format_map(sql, param))
+}
+
+func SelectBase2(param map[string]string) map[string]map[string]string{
+	sql := `
+		select 
+			*
+		from base
+		where description like "%재료%" and description  like "%[%"
+	`
 	return Query(format_map(sql, param))
 }

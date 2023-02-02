@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>머먹</title>
+    </head>
+    <body>
+        <h1>머먹?</h1>
+        <div id = "contents">
+
+
+        </div>
+
+
+    </body>
+</html>
+
+
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script>
+
+
+$(document).ready(function(){
+    showRecipe();
+});
+function showRecipe(){
+  
+    $.ajax({
+        url : "/api/selectbase"
+        ,method : "POST"
+        ,dataType : "JSON"
+        ,success : function(data){
+            var jsondata = JSON.parse(data);
+
+            for (var i = 0 ; i < jsondata.length; i++) {
+                var item = jsondata[i];
+                $("#contents").append(`<div id = "content`+i+`" class = "content"><p class = "item">`+item.Origin.replaceAll("\n","</br>")+`</p></div>`);
+                $("#content"+i).append(`<p class = "item2">`+item.Name+`</p>`);
+                $("#content"+i+" .item2").append(`</br></br>`);
+      
+                for (ingr of item.Ingredients) {
+                    if (ingr.Dtype == "title"){
+                        $("#content"+i+" .item2").append(`</br>`);
+                    }
+                    $("#content"+i+" .item2").append(ingr.Name);
+                    $("#content"+i+" .item2").append(`</br>`);
+                    if (ingr.Dtype == "title"){
+                        $("#content"+i+" .item2").append(`</br>`);
+                    }
+                }
+                
+                $("#content"+i+" .item2").append(`</br></br>`);
+                
+
+                for (dire of item.Directions) {
+                    if (dire.Dtype == "title"){
+                        $("#content"+i+" .item2").append(`</br>`);
+                    }
+                    $("#content"+i+" .item2").append(dire.Description);
+                    $("#content"+i+" .item2").append(`</br>`);
+                    if (dire.Dtype == "title"){
+                        $("#content"+i+" .item2").append(`</br>`);
+                    }
+                }
+                
+            }
+
+
+   
+    
+        }
+    });
+
+};
+
+</script>
+
+<style>
+    .content{
+        border:1px solid gray;
+        overflow: auto;
+    }
+    .item{
+        width:45%;
+        float:left;
+    }
+</style>

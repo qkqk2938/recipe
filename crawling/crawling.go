@@ -6,11 +6,8 @@ import (
 	"time"
 	"fmt"
 	"strings"
-	"sync"
 	"github.com/chromedp/chromedp"
 	db "crawling/db"
-	//"github.com/chromedp/cdproto/cdp"
-	//"github.com/chromedp/cdproto/runtime"
 )
 
 
@@ -22,73 +19,47 @@ func main() {
 	if len(linklist) <1{
 		return
 	}
-	var wg sync.WaitGroup
-	remainder := len(linklist)
-	forMax := 5
+
+	contextVar, cancelFunc := chromedp.NewContext(
+		context.Background(),
+		chromedp.WithLogf(log.Printf),
+	)
+	defer cancelFunc()
+	contextVar, cancelFunc = context.WithTimeout(contextVar, 10000*time.Second)	// timeout 값을 설정 
+	defer cancelFunc()
+
 	for i := 0; i<len(linklist)-1; i++{
-		log.Println(i)
-		if i % forMax ==0{
-			log.Print("==============")
+
+		getDescription(contextVar, linklist[i])
 		
-			wg.Wait()
-			log.Print("--------------")
-			if remainder >= forMax {
-				remainder -= forMax
-				log.Printf("add")	
-				log.Print(forMax)				
-				wg.Add(forMax)
-			}else{
-				log.Printf("add2")	
-				log.Print(remainder)	
-				wg.Add(remainder)
-			}
-		}
-	
-		getDescription(linklist[i],&wg)
-		
-		
-	
 	}
-
-	wg.Wait()
-
-
 
 }
 
-func getDescription(url string, wg *sync.WaitGroup){
-	go func(){
-		
-		defer func(){
-			log.Printf("Done")	
-			wg.Done()
-		}()
-		contextVar, cancelFunc := chromedp.NewContext(
-			context.Background(),
-			chromedp.WithLogf(log.Printf),
-		)
-		defer cancelFunc()
-		contextVar = context.WithValue(contextVar, url, url)
-		contextVar, cancelFunc = context.WithTimeout(contextVar, 600*time.Second)	// timeout 값을 설정 
-		defer cancelFunc()
-		
-		var strVar string
-		err := chromedp.Run(contextVar,		
-			chromedp.Navigate("https://www.youtube.com"+url),
-			chromedp.Click("#primary div#primary-inner div#below ytd-watch-metadata div#above-the-fold div#bottom-row div#description tp-yt-paper-button#expand-sizer", chromedp.ByID ),
-			chromedp.Text("#primary div#primary-inner div#below ytd-watch-metadata div#above-the-fold div#bottom-row div#description", &strVar,chromedp.ByID ),
-			//chromedp.Text("#primary div#primary-inner div#below ytd-watch-metadata div#above-the-fold div#bottom-row div#description tp-yt-paper-button#expand-sizer", &attr,chromedp.ByQueryAll ),
-		)
-		if err != nil {
-			panic(err)
-		}
-		strVar = strings.Replace(strVar, "\"", "\\\"", -1)
-		param := make(map[string]string)
-		param["url"] = url
-		param["description"] = strVar
-		db.InsertBase(param)
+func getDescription(contextVar context.Context, url string){
+	log.Println(url)
 
-	}()
+	
+	var strVar string
+	var title string
+	err := chromedp.Run(contextVar,		
+		chromedp.Navigate("https://www.youtube.com"+url),
+		chromedp.Click("#primary div#primary-inner div#below ytd-watch-metadata div#above-the-fold div#bottom-row div#description tp-yt-paper-button#expand-sizer", chromedp.ByID ),
+		chromedp.Text("#primary div#primary-inner div#below ytd-watch-metadata div#above-the-fold div#bottom-row div#description div#description-inner ytd-text-inline-expander yt-formatted-string", &strVar,chromedp.ByID ),
+		chromedp.Text("#primary div#primary-inner div#below ytd-watch-metadata div#above-the-fold div#title", &title,chromedp.ByID ),
+		//chromedp.Text("#primary div#primary-inner div#below ytd-watch-metadata div#above-the-fold div#bottom-row div#description tp-yt-paper-button#expand-sizer", &attr,chromedp.ByQueryAll ),
+	)
+	if err != nil {
+		panic(err)
+	}
+	strVar = strings.Replace(strVar, "\"", "\\\"", -1)
+	title = strings.Replace(title, "\"", "\\\"", -1)
+	param := make(map[string]string)
+	param["url"] = url
+	param["description"] = strVar
+	param["title"] = title
+	db.InsertBase(param)
+
 
 }
 

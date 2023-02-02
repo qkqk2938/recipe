@@ -26,12 +26,14 @@ func InsertBase(param map[string]string) string{
 	sql := `
 		insert into base(
 			url
-			,description)
+			,description
+			,title)
 		values(
 			"{url}"
 			,"{description}"
+			,"{title}"
 		) ON DUPLICATE KEY UPDATE	
-		url = "{url}"
+		description = "{description}", title = "{title}"
 	`
 	return Exec(format_map(sql, param))
 }
