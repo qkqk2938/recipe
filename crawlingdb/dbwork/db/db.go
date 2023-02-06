@@ -36,7 +36,7 @@ func SetDB() {
 }
 
 
-func Query(sql string) map[string]map[string]string{
+func Query(sql string) []map[string]string{
     log.Println(sql)
 	rows, err := db.Query(sql)
 	if err != nil {
@@ -47,7 +47,7 @@ func Query(sql string) map[string]map[string]string{
     cols, _ := rows.Columns()
     pointers := make([]interface{}, len(cols))
     container := make([]string, len(cols))
-    result := make(map[string]map[string]string)
+    result := make([]map[string]string,0)
     for i, _ := range pointers {
         pointers[i] = &container[i]
     }
@@ -60,7 +60,7 @@ func Query(sql string) map[string]map[string]string{
         for i, v := range cols {
             item[v] = container[i]
         }
-        result[container[0]] = item
+        result = append(result, item)
     }
     return result
 
@@ -103,6 +103,7 @@ func JsonQuery(sql string) string{
 }
 
 func Exec(sql string) string{
+    log.Println(sql)
 	result, err := db.Exec(sql)
 	if err != nil {
         log.Fatal(err)
@@ -116,4 +117,17 @@ func Exec(sql string) string{
     return strconv.Itoa(int(n))
 }
 
+func ExecGetLastID(sql string) string{
+    log.Println(sql)
+	result, err := db.Exec(sql)
+	if err != nil {
+        log.Fatal(err)
+    }
 
+	_, err = result.RowsAffected()
+    if err != nil {
+        log.Fatal(err)
+    }
+    lastID, _ := result.LastInsertId()
+    return strconv.Itoa(int(lastID))
+}

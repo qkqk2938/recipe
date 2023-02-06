@@ -1,10 +1,11 @@
 package db
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	//"log"
 	"regexp"
 	"strings"
+	"strconv"
 )
 	
 type Recipe struct {
@@ -12,6 +13,8 @@ type Recipe struct {
 	Ingredients		[]Ingredients
 	Directions		[]Directions
 	Origin			string
+	Url				string
+	Sumurl			string
 }
 
 type Ingredients struct {
@@ -26,6 +29,7 @@ type Directions struct {
 	Description string
 
 }
+
 
 func Perser() string{
 
@@ -46,11 +50,13 @@ func Perser() string{
 	//re2, _ := regexp.Compile("\\={5,}\\n{1,3}[^a-zA-Z\\n\\[\\(]+")
 
 	//태그 가져오기
-	//re3, _ := regexp.Compile("\\#[^a-zA-Z |\n]+")
+	gettag, _ := regexp.Compile("\\#[^a-zA-Z |\n]+")
 
 	for _, des := range dess {
 		recipe := new(Recipe)
 		recipe.Origin = des["description"]
+		recipe.Url = "https://www.youtube.com"+des["url"]
+		recipe.Sumurl = "https://img.youtube.com/vi/"+des["url"][9:]+"/mqdefault.jpg"
 		ingredients := make([]Ingredients,0)
 		directions := make([]Directions,0)
 
@@ -58,7 +64,7 @@ func Perser() string{
 		desarr := strings.Split(des["description"], "\n")
 		finditem := ""
 		for i, v := range desarr {
-			if i < 10 && strings.Contains(v,"======"){
+			if i < 20 && strings.Contains(v,"======"){
 				finditem = "이름"
 				continue
 			}
@@ -76,6 +82,8 @@ func Perser() string{
 					finditem = "재료"
 				}else if strings.Contains(title, "법"){
 					finditem = "만드는법"
+				}else{
+					recipe.Name = v
 				}
 			
 			} 
@@ -93,6 +101,7 @@ func Perser() string{
 				bv := strings.ReplaceAll(v, " ", "")
 				
 				ingredient := new(Ingredients)
+				v = strings.Replace(v, "\"", "\\\"", -1)
 				ingredient.Name = v
 				if (bv[:1] == "*" || bv[:1] == "[") && blankCheck(desarr[i-1]){
 					ingredient.Dtype = "title"
@@ -111,6 +120,7 @@ func Perser() string{
 				bv := strings.ReplaceAll(v, " ", "")					
 					
 				direction := new(Directions)
+				v = strings.Replace(v, "\"", "\\\"", -1)
 				direction.Description = v
 				if (bv[:1] == "*" || bv[:1] == "[") && blankCheck(desarr[i-1]){
 					direction.Dtype = "title"
@@ -125,6 +135,17 @@ func Perser() string{
 
 		}
 
+		if recipe.Name == ""{
+			tags := gettag.FindAllString(des["description"], -1)
+
+			for _, tag := range tags{
+
+				if !strings.Contains(tag, "백종원") && !strings.Contains(tag, "집밥") && !strings.Contains(tag, "버전") && !strings.Contains(tag, "뚝배기") && !strings.Contains(tag, "음식") && !strings.Contains(tag, "쿸방") && !strings.Contains(tag, "쿡방") && !strings.Contains(tag, "소스") && !strings.Contains(tag, "제철") &&!strings.Contains(tag, "맛"){
+					recipe.Name = tag[1:]
+				}
+			}
+		}
+		
 		recipe.Ingredients = ingredients
 		recipe.Directions = directions
 		recipes = append(recipes,*recipe)
@@ -168,20 +189,52 @@ func Perser() string{
 		// }
 		
 	}
+	recipeInsert(recipes)
 
+	//byteData, _ := json.Marshal(recipes)
 
-	byteData, _ := json.Marshal(recipes)
-	// "재료" 가 들어가고 "법"이 안들어간거
-	// "만드는" 이 들어가고 "법"이 들어간거
-
-	// log.Println(tmapfoodname)
-	// log.Println(tmapjerou)
-	// log.Println(tmapmake)
-
-	//tinx := re1.FindAllStringIndex(des,-1)
-	//log.Println(tinx)
-	return string(byteData)
+	//return string(byteData)
 	
+	return "성공"
+
+}
+
+func recipeInsert(recipes []Recipe){
+
+	recipeParam := make(map[string]string)
+	ingrParam := make(map[string]string)
+	dircParam := make(map[string]string)
+
+	for _, recipe := range recipes{
+		recipeParam["name"] = recipe.Name
+		recipeParam["url"] = recipe.Url
+		recipeParam["imgurl"] = recipe.Sumurl
+		recipe_id := InsertRecipe(recipeParam)
+		// iddata := SelectRecipeID(recipeParam)
+		// recipe_id := iddata[0]["id"]
+
+	for i, ingredient := range recipe.Ingredients{
+
+		ingrParam["recipe_id"] = recipe_id
+		ingrParam["name"] = ingredient.Name
+		ingrParam["rownum"] = strconv.Itoa(i)
+		ingrParam["type"] = ingredient.Dtype
+		InsertIngredients(ingrParam)
+	}
+
+	for ii, direction := range recipe.Directions{
+
+		dircParam["recipe_id"] = recipe_id
+		dircParam["name"] = direction.Description
+		dircParam["rownum"] = strconv.Itoa(ii)
+		dircParam["type"] = direction.Dtype
+		InsertDirections(dircParam)
+	}
+
+
+	}
+
+
 
 }
 

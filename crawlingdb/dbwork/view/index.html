@@ -38,7 +38,10 @@ function showRecipe(){
                 $("#contents").append(`<div id = "content`+i+`" class = "content"><p class = "item">`+item.Origin.replaceAll("\n","</br>")+`</p></div>`);
                 $("#content"+i).append(`<p class = "item2">`+item.Name+`</p>`);
                 $("#content"+i+" .item2").append(`</br></br>`);
-      
+                $("#content"+i+" .item2").append(item.Url);
+                $("#content"+i+" .item2").append(`</br></br>`);
+                $("#content"+i+" .item2").append(item.Sumurl);
+                $("#content"+i+" .item2").append(`</br></br>`);
                 for (ingr of item.Ingredients) {
                     if (ingr.Dtype == "title"){
                         $("#content"+i+" .item2").append(`</br>`);
